@@ -12,7 +12,7 @@ This implementation is based on Pytorch We assume that you're using Python 3 wit
 - [tqdm](https://github.com/tqdm/tqdm)
 - [numpy](https://numpy.org/)
   
-Experiments are produced on Pubmed, Flickr, Reddit and PPi dataset. Dataset can be download from [Google drive](https://drive.google.com/drive/folders/1qrFuQOxrbaDziJFeEkpAiXmL_C8dlk3K?usp=sharing).
+Experiments are produced on Pubmed, Flickr, Reddit, and PPi dataset. Dataset can be download from [Google drive](https://drive.google.com/drive/folders/1qrFuQOxrbaDziJFeEkpAiXmL_C8dlk3K?usp=sharing).
 
 ## Usage
 Execute the following scripts (`run.sh`) to reproduce the result in the paper:
@@ -46,12 +46,13 @@ python train_sgcn.py --dataset flickr --sample_method exact
 python train_sgcn.py --dataset pubmed --sample_method exact
 python train_sgcn.py --dataset reddit --sample_method exact
 ```
-There's also other hyperparameters to be tuned, which can be found in 'train_sgcn.py' for details. 
+There are also other hyperparameters to be tuned, which can be found in `train_sgcn.py` for details. 
 
-For convenience, we also provide a jupyter notebook.
+For a better visualization purpose, we also provide a jupyter notebook file.
 Please check `example.ipynb` for details. 
 
 ## Algorithms
 - "sgcn_pplus_0" refers to the zeroth-order only, a.k.a. SGCN++ (zeroth order)
 - "sgcn_pplus_1" refers to the first-order only, a.k.a. SGCN++ (first order)
 - "sgcn_pplus_01" refers to the doubly variance reduction, a.k.a. SGCN++ (doubly)
+
