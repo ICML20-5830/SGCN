@@ -6,7 +6,7 @@ Convergence Analysis and Variance Reduction".
 ## Setup
 This implementation is based on Pytorch We assume that you're using Python 3 with pip installed. To run the code, you need the following dependencies:
 
-- [Pytorch 1.0](https://pytorch.org/)
+- [Pytorch 1.3](https://pytorch.org/)
 - [gensim](https://github.com/RaRe-Technologies/gensim)
 - [networkx](https://networkx.github.io/)
 - [tqdm](https://github.com/tqdm/tqdm)
@@ -15,7 +15,7 @@ This implementation is based on Pytorch We assume that you're using Python 3 wit
 Experiments are produced on Pubmed, Flickr, Reddit, and PPi dataset. Dataset can be download from [Google drive](https://drive.google.com/drive/folders/1qrFuQOxrbaDziJFeEkpAiXmL_C8dlk3K?usp=sharing).
 
 ## Usage
-Execute the following scripts (`run.sh`) to reproduce the result in the paper:
+Execute the following scripts (`run.sh`) to reproduce the result in the paper. 
 
 ```bash
 # create folders that save experiment results and datasets
@@ -49,7 +49,7 @@ python train_sgcn.py --dataset reddit --sample_method exact
 There are also other hyperparameters to be tuned, which can be found in `train_sgcn.py` for details. 
 
 For a better visualization purpose, we also provide a jupyter notebook file.
-Please check `example.ipynb` for details. 
+Please check `example.ipynb` for details. Notice that `example.ipynb` requires a GPU for calculating the CUDA utilization during training.
 
 ## Algorithms
 - "sgcn_pplus_0" refers to the zeroth-order only, a.k.a. SGCN++ (zeroth order)

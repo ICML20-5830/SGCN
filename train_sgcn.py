@@ -12,7 +12,7 @@ Dataset arguments
 parser = argparse.ArgumentParser(
     description='Training GCN on Large-scale Graph Datasets')
 
-parser.add_argument('--dataset', type=str, default='flickr',
+parser.add_argument('--dataset', type=str, default='pubmed',
                     help='Dataset name: pubmed/flickr/reddit/ppi')
 parser.add_argument('--nhid', type=int, default=256,
                     help='Hidden state dimension')
@@ -30,11 +30,11 @@ parser.add_argument('--n_stops', type=int, default=200,
                     help='Early stops')
 parser.add_argument('--samp_num', type=int, default=512,
                     help='Number of sampled nodes per layer (only for ladies & factgcn)')
-parser.add_argument('--sample_method', type=str, default='ladies',
+parser.add_argument('--sample_method', type=str, default='graphsage',
                     help='Sampled Algorithms: ladies/fastgcn/graphsage/exact')
 parser.add_argument('--dropout', type=float, default=0,
                     help='Dropout rate')
-parser.add_argument('--cuda', type=int, default=1,
+parser.add_argument('--cuda', type=int, default=0,
                     help='Avaiable GPU ID')
 parser.add_argument('--sgd_lr', type=int, default=0.7,
                     help='learning rate for SGD')
@@ -53,6 +53,7 @@ else:
 Prepare data using multi-process
 """
 
+
 def prepare_data(pool, sampler, process_ids, train_nodes, samp_num_list, num_nodes, lap_matrix, lap_matrix_sq, depth):
     jobs = []
     for _ in process_ids:
@@ -62,6 +63,7 @@ def prepare_data(pool, sampler, process_ids, train_nodes, samp_num_list, num_nod
                                             samp_num_list, num_nodes, lap_matrix, lap_matrix_sq, depth))
         jobs.append(p)
     return jobs
+
 
 lap_matrix, labels, feat_data, train_nodes, valid_nodes, test_nodes = preprocess_data(
     args.dataset, True if args.sample_method=='graphsage' else False)
@@ -73,6 +75,8 @@ if type(feat_data) == sp.lil.lil_matrix:
     feat_data = torch.FloatTensor(feat_data.todense()).to(device)
 else:
     feat_data = torch.FloatTensor(feat_data).to(device)
+
+
 
 """
 Setup datasets and models for training (multi-class use sigmoid+binary_cross_entropy, use softmax+nll_loss otherwise)
@@ -106,6 +110,8 @@ elif args.sample_method == 'graphsage':
     sampler = graphsage_sampler
     samp_num_list = np.array([args.samp_num for _ in range(args.n_layers)])  # as proposed in GraphSage paper
 
+
+
 def calculate_grad_variance(net, feat_data, labels, train_nodes, adjs_full):
     net_grads = []
     for p_net in net.parameters():
@@ -125,13 +131,14 @@ def calculate_grad_variance(net, feat_data, labels, train_nodes, adjs_full):
     variance = torch.sqrt(variance)
     return variance
 
+
+
 """
 This is a zeroth-order and first-order variance reduced version of Stochastic-GCN++
 """
 
 def sgcn_pplus_01(feat_data, labels, lap_matrix, train_nodes, valid_nodes, test_nodes,  args, device, calculate_grad_vars=False):
-    memory_allocated, max_memory_allocated = [], []
-    
+
     # use multiprocess sample data
     process_ids = np.arange(args.batch_num)
     pool = mp.Pool(args.pool_num)
@@ -152,7 +159,6 @@ def sgcn_pplus_01(feat_data, labels, lap_matrix, train_nodes, valid_nodes, test_
     forward_wrapper = ForwardWrapper(
         len(feat_data), args.nhid, args.n_layers, num_classes)
 
-#     optimizer = optim.SGD(filter(lambda p : p.requires_grad, susage.parameters()), lr=args.sgd_lr)
     optimizer = optim.Adam(
         filter(lambda p: p.requires_grad, susage.parameters()))
 
@@ -166,9 +172,6 @@ def sgcn_pplus_01(feat_data, labels, lap_matrix, train_nodes, valid_nodes, test_
     loss_train_all = [best_val_loss]
 
     for epoch in np.arange(args.epoch_num):
-        memory_allocated += [torch.cuda.memory_allocated(device)/1024/1024]
-        max_memory_allocated += [torch.cuda.max_memory_allocated(device)/1024/1024]
-        
         # fetch train data
         train_data = [job.get() for job in jobs]
         pool.close()
@@ -215,15 +218,18 @@ def sgcn_pplus_01(feat_data, labels, lap_matrix, train_nodes, valid_nodes, test_
               '| test loss: %.8f' % cur_test_loss)
     
     f1_score_test = best_model.calculate_f1(feat_data, adjs_full, labels, test_nodes)
-    return best_model, loss_train, loss_test, loss_train_all, f1_score_test, grad_variance_all, memory_allocated, max_memory_allocated
+    return best_model, loss_train, loss_test, loss_train_all, f1_score_test, grad_variance_all
+
+
+# In[8]:
+
 
 """
 This is a first-order variance reduced version of Stochastic-GCN++
 """
 
 def sgcn_pplus_1(feat_data, labels, lap_matrix, train_nodes, valid_nodes, test_nodes,  args, device, calculate_grad_vars=False):
-    memory_allocated, max_memory_allocated = [], []
-    
+
     # use multiprocess sample data
     process_ids = np.arange(args.batch_num)
     pool = mp.Pool(args.pool_num)
@@ -241,7 +247,6 @@ def sgcn_pplus_1(feat_data, labels, lap_matrix, train_nodes, valid_nodes, test_n
         train_nodes, len(feat_data), lap_matrix, args.n_layers)
     adjs_full = package_mxl(adjs_full, device)
 
-#     optimizer = optim.SGD(filter(lambda p : p.requires_grad, susage.parameters()), lr=args.sgd_lr)
     optimizer = optim.Adam(
         filter(lambda p: p.requires_grad, susage.parameters()))
 
@@ -255,9 +260,6 @@ def sgcn_pplus_1(feat_data, labels, lap_matrix, train_nodes, valid_nodes, test_n
     loss_train_all = [best_val_loss]
 
     for epoch in np.arange(args.epoch_num):
-        memory_allocated += [torch.cuda.memory_allocated(device)/1024/1024]
-        max_memory_allocated += [torch.cuda.max_memory_allocated(device)/1024/1024]
-        
         # fetch train data
         train_data = [job.get() for job in jobs]
         pool.close()
@@ -304,15 +306,16 @@ def sgcn_pplus_1(feat_data, labels, lap_matrix, train_nodes, valid_nodes, test_n
               '| test loss: %.8f' % cur_test_loss)
 
     f1_score_test = best_model.calculate_f1(feat_data, adjs_full, labels, test_nodes)
-    return best_model, loss_train, loss_test, loss_train_all, f1_score_test, grad_variance_all, memory_allocated, max_memory_allocated
+    return best_model, loss_train, loss_test, loss_train_all, f1_score_test, grad_variance_all
+
+
 
 """
 This is a zeroth-order variance reduced version of Stochastic-GCN+
 """
 
 def sgcn_pplus_0(feat_data, labels, lap_matrix, train_nodes, valid_nodes, test_nodes,  args, device, calculate_grad_vars=False):
-    memory_allocated, max_memory_allocated = [], []
-    
+
     # use multiprocess sample data
     process_ids = np.arange(args.batch_num)
     pool = mp.Pool(args.pool_num)
@@ -334,7 +337,6 @@ def sgcn_pplus_0(feat_data, labels, lap_matrix, train_nodes, valid_nodes, test_n
     forward_wrapper = ForwardWrapper(
         len(feat_data), args.nhid, args.n_layers, num_classes)
 
-#     optimizer = optim.SGD(filter(lambda p : p.requires_grad, susage.parameters()), lr=args.sgd_lr)
     optimizer = optim.Adam(
         filter(lambda p: p.requires_grad, susage.parameters()))
 
@@ -348,9 +350,6 @@ def sgcn_pplus_0(feat_data, labels, lap_matrix, train_nodes, valid_nodes, test_n
     loss_train_all = [best_val_loss]
 
     for epoch in np.arange(args.epoch_num):
-        memory_allocated += [torch.cuda.memory_allocated(device)/1024/1024]
-        max_memory_allocated += [torch.cuda.max_memory_allocated(device)/1024/1024]
-        
         # fetch train data
         train_data = [job.get() for job in jobs]
         pool.close()
@@ -398,15 +397,17 @@ def sgcn_pplus_0(feat_data, labels, lap_matrix, train_nodes, valid_nodes, test_n
               '| test loss: %.8f' % cur_test_loss)
 
     f1_score_test = best_model.calculate_f1(feat_data, adjs_full, labels, test_nodes)
-    return best_model, loss_train, loss_test, loss_train_all, f1_score_test, grad_variance_all, memory_allocated, max_memory_allocated
+    return best_model, loss_train, loss_test, loss_train_all, f1_score_test, grad_variance_all
+
+
 
 """
 This is just an unchanged Stochastic-GCN 
 """
 
+
 def sgcn(feat_data, labels, lap_matrix, train_nodes, valid_nodes, test_nodes,  args, device, calculate_grad_vars=False, full_batch=False):
-    memory_allocated, max_memory_allocated = [], []
-    
+
     # use multiprocess sample data
     process_ids = np.arange(args.batch_num)
     pool = mp.Pool(args.pool_num)
@@ -424,7 +425,6 @@ def sgcn(feat_data, labels, lap_matrix, train_nodes, valid_nodes, test_nodes,  a
         train_nodes, len(feat_data), lap_matrix, args.n_layers)
     adjs_full = package_mxl(adjs_full, device)
 
-#     optimizer = optim.SGD(filter(lambda p : p.requires_grad, susage.parameters()), lr=args.sgd_lr)
     optimizer = optim.Adam(
         filter(lambda p: p.requires_grad, susage.parameters()))
 
@@ -439,9 +439,6 @@ def sgcn(feat_data, labels, lap_matrix, train_nodes, valid_nodes, test_nodes,  a
 
 
     for epoch in np.arange(args.epoch_num):
-        memory_allocated += [torch.cuda.memory_allocated(device)/1024/1024]
-        max_memory_allocated += [torch.cuda.max_memory_allocated(device)/1024/1024]
-        
         # fetch train data
         train_data = [job.get() for job in jobs]
         pool.close()
@@ -494,9 +491,10 @@ def sgcn(feat_data, labels, lap_matrix, train_nodes, valid_nodes, test_nodes,  a
               '| train loss: %.8f' % cur_train_loss,
               '| test loss: %.8f' % cur_test_loss)
     f1_score_test = best_model.calculate_f1(feat_data, adjs_full, labels, test_nodes)
-    return best_model, loss_train, loss_test, loss_train_all, f1_score_test, grad_variance_all, memory_allocated, max_memory_allocated
+    return best_model, loss_train, loss_test, loss_train_all, f1_score_test, grad_variance_all
 
-n = './results/{}_{}.pkl'.format(args.sample_method, args.dataset)
+
+fn = './results/{}_{}.pkl'.format(args.sample_method, args.dataset)
 if not os.path.exists(fn):
     results = dict()
 else:
@@ -504,41 +502,45 @@ else:
         results = pkl.load(f)
 calculate_grad_vars = True
 
+
 st = time.time()
 print('>>> sgcn')
-torch.cuda.empty_cache()
-susage, loss_train, loss_test, loss_train_all, f1_score_test, grad_variance_all, memory_allocated, max_memory_allocated  = sgcn(
+susage, loss_train, loss_test, loss_train_all, f1_score_test, grad_variance_all  = sgcn(
     feat_data, labels, lap_matrix, train_nodes, valid_nodes, test_nodes,  args, device, calculate_grad_vars, full_batch=False)
-results['sgcn'] = [loss_train, loss_test, loss_train_all, f1_score_test, grad_variance_all, memory_allocated, max_memory_allocated]
+results['sgcn'] = [loss_train, loss_test, loss_train_all, f1_score_test, grad_variance_all]
 print('sgcn', time.time() - st)
 
+
 if args.sample_method is not 'exact':
-    torch.cuda.empty_cache()
     st = time.time()
     print('>>> sgcn_pplus_01')
-    susage, loss_train, loss_test, loss_train_all, f1_score_test, grad_variance_all, memory_allocated, max_memory_allocated = sgcn_pplus_01(
+    susage, loss_train, loss_test, loss_train_all, f1_score_test, grad_variance_all = sgcn_pplus_01(
         feat_data, labels, lap_matrix, train_nodes, valid_nodes, test_nodes,  args, device, calculate_grad_vars)
-    results['sgcn_pplus_01'] = [loss_train, loss_test, loss_train_all, f1_score_test, grad_variance_all, memory_allocated, max_memory_allocated]
+    results['sgcn_pplus_01'] = [loss_train, loss_test, loss_train_all, f1_score_test, grad_variance_all]
     print('sgcn_pplus_01', time.time() - st)
 
+
 if args.sample_method is not 'exact':
-    torch.cuda.empty_cache()
     st = time.time()
     print('>>> sgcn_pplus_0')
-    susage, loss_train, loss_test, loss_train_all, f1_score_test, grad_variance_all, memory_allocated, max_memory_allocated = sgcn_pplus_0(
+    susage, loss_train, loss_test, loss_train_all, f1_score_test, grad_variance_all = sgcn_pplus_0(
         feat_data, labels, lap_matrix, train_nodes, valid_nodes, test_nodes,  args, device, calculate_grad_vars)
-    results['sgcn_pplus_0'] = [loss_train, loss_test, loss_train_all, f1_score_test, grad_variance_all, memory_allocated, max_memory_allocated]
+    results['sgcn_pplus_0'] = [loss_train, loss_test, loss_train_all, f1_score_test, grad_variance_all]
     print('sgcn_pplus_0', time.time() - st)
 
+
 st = time.time()
-torch.cuda.empty_cache()
 print('>>> sgcn_pplus_1')
-susage, loss_train, loss_test, loss_train_all, f1_score_test, grad_variance_all, memory_allocated, max_memory_allocated = sgcn_pplus_1(
+susage, loss_train, loss_test, loss_train_all, f1_score_test, grad_variance_all = sgcn_pplus_1(
     feat_data, labels, lap_matrix, train_nodes, valid_nodes, test_nodes,  args, device, calculate_grad_vars)
-results['sgcn_pplus_1'] = [loss_train, loss_test, loss_train_all, f1_score_test, grad_variance_all, memory_allocated, max_memory_allocated]
+results['sgcn_pplus_1'] = [loss_train, loss_test, loss_train_all, f1_score_test, grad_variance_all]
 print('sgcn_pplus_1', time.time() - st)
 
+
 results.keys()
+
+
 with open(fn, 'wb') as f:
     pkl.dump(results, f)
+
 
