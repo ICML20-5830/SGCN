@@ -4,13 +4,16 @@ Open-sourced implementation for ICML20 paper (5830) "On the Importance of Sampli
 Convergence Analysis and Variance Reduction".
 
 ## Setup
-This implementation is based on Pytorch We assume that you're using Python 3 with pip installed. To run the code, you need the following dependencies:
+This implementation is based on [PyTorch](https://pytorch.org/) We assume that you're using Python 3 with pip installed. The required dependencies can be installed by executing the following commands.
+To run the code, you need the following dependencies:
 
-- [Pytorch 1.3](https://pytorch.org/)
-- [gensim](https://github.com/RaRe-Technologies/gensim)
-- [networkx](https://networkx.github.io/)
-- [tqdm](https://github.com/tqdm/tqdm)
-- [numpy](https://numpy.org/)
+```bash
+# create virtual environment
+virtualenv env
+source env/bin/activate
+# install dependencies
+pip install -r requirements.txt
+```
   
 Experiments are produced on Pubmed, Flickr, Reddit, and PPi dataset. Dataset can be download from [Google drive](https://drive.google.com/drive/folders/1wW8JwNkPbXZuv1gD4E3BAQ3CHBdqtEqm?usp=sharing).
 
