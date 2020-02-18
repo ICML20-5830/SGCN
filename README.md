@@ -12,7 +12,7 @@ This implementation is based on Pytorch We assume that you're using Python 3 wit
 - [tqdm](https://github.com/tqdm/tqdm)
 - [numpy](https://numpy.org/)
   
-Experiments are produced on Pubmed, Flickr, Reddit, and PPi dataset. Dataset can be download from [Google drive](https://drive.google.com/drive/folders/1qrFuQOxrbaDziJFeEkpAiXmL_C8dlk3K?usp=sharing).
+Experiments are produced on Pubmed, Flickr, Reddit, and PPi dataset. Dataset can be download from [Google drive](https://drive.google.com/drive/folders/1wW8JwNkPbXZuv1gD4E3BAQ3CHBdqtEqm?usp=sharing).
 
 ## Usage
 Execute the following scripts (`run.sh`) to reproduce the result in the paper. 
