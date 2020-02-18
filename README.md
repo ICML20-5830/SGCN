@@ -4,14 +4,13 @@ Open-sourced implementation for ICML20 paper (5830) "On the Importance of Sampli
 Convergence Analysis and Variance Reduction".
 
 ## Setup
-This implementation is based on [PyTorch](https://pytorch.org/) We assume that you're using Python 3 with pip installed. The required dependencies can be installed by executing the following commands.
-To run the code, you need the following dependencies:
+This implementation is based on [PyTorch >= 1.0.0](https://pytorch.org/) We assume that you're using Python 3 with pip installed. The required dependencies can be installed by executing the following commands.
 
 ```bash
 # create virtual environment
 virtualenv env
 source env/bin/activate
-# install dependencies
+# install dependencies 
 pip install -r requirements.txt
 ```
   
